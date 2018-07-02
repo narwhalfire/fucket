@@ -16,19 +16,6 @@ import javax.annotation.Nonnull;
 public class ItemBasicFucket extends FucketBase {
 
 
-    @Override
-    public boolean hasContainerItem(@Nonnull ItemStack stack) {
-        //todo: check if there is stuff in there.
-        return false;
-    }
-
-    @Override
-    @Nonnull
-    public ItemStack getContainerItem(@Nonnull ItemStack itemStack) {
-        //todo: figure out what to do here
-        return super.getContainerItem(itemStack);
-    }
-
     /**
      * Called on equipped item right click
      */
