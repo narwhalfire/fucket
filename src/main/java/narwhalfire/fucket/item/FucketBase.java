@@ -7,6 +7,6 @@ import net.minecraft.item.Item;
  */
 public abstract class FucketBase extends Item {
 
-
+    //todo: need to add capabilities to fuckets
 
 }
