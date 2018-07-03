@@ -1,7 +1,9 @@
 package narwhalfire.fucket;
 
+import narwhalfire.fucket.item.ItemBasicFucket;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemBlock;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -65,10 +67,9 @@ public class Fucket {
      */
     @GameRegistry.ObjectHolder(MOD_ID)
     public static class Items {
-      /*
-          public static final ItemBlock mySpecialBlock = null; // itemblock for the block above
-          public static final MySpecialItem mySpecialItem = null; // placeholder for special item below
-      */
+
+          public static final ItemBasicFucket basicFucket = new ItemBasicFucket();
+
     }
 
     /**
@@ -81,10 +82,9 @@ public class Fucket {
          */
         @SubscribeEvent
         public static void addItems(RegistryEvent.Register<Item> event) {
-           /*
-             event.getRegistry().register(new ItemBlock(Blocks.myBlock).setRegistryName(MOD_ID, "myBlock"));
-             event.getRegistry().register(new MySpecialItem().setRegistryName(MOD_ID, "mySpecialItem"));
-            */
+
+            event.getRegistry().register(Items.basicFucket);
+
         }
 
         /**
@@ -97,13 +97,5 @@ public class Fucket {
             */
         }
     }
-    /* EXAMPLE ITEM AND BLOCK - you probably want these in separate files
-    public static class MySpecialItem extends Item {
 
-    }
-
-    public static class MySpecialBlock extends Block {
-
-    }
-    */
 }

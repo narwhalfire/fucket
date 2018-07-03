@@ -1,5 +1,6 @@
 package narwhalfire.fucket.item;
 
+import narwhalfire.fucket.Fucket;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -22,6 +23,10 @@ import javax.annotation.Nonnull;
  */
 public class ItemBasicFucket extends FucketBase {
 
+
+    public ItemBasicFucket() {
+        this.setRegistryName(Fucket.MOD_ID, "basic_fucket");
+    }
 
     /**
      * Called on equipped item right click
