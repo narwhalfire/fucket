@@ -9,14 +9,18 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.common.registry.EntityEntry;
 import net.minecraftforge.fml.common.registry.EntityRegistry;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.List;
 
 /**
  * The Basic Fucket: Just a normal fucket capable of storing entities and whatnot.
@@ -37,7 +41,7 @@ public class ItemBasicFucket extends FucketBase {
 
         ItemStack itemStack = playerIn.getHeldItem(handIn);
 
-        RayTraceResult target = this.rayTrace(worldIn, playerIn, true);
+        RayTraceResult target = this.rayTraceFucket(worldIn, playerIn);
         if (target == null || target.typeOfHit == RayTraceResult.Type.MISS) {
             return ActionResult.newResult(EnumActionResult.PASS, itemStack);
         }
@@ -60,23 +64,26 @@ public class ItemBasicFucket extends FucketBase {
                 return ActionResult.newResult(EnumActionResult.FAIL, itemStack);
 
             } else if (target.typeOfHit == RayTraceResult.Type.ENTITY &&
-                       target.entityHit.getClass().isInstance(storedEntity.getEntityClass())) {
+                       target.entityHit.getClass().equals(storedEntity.getEntityClass())) {
 
+                count++;
                 Entity targetEntity = target.entityHit;
                 targetEntity.setDropItemsWhenDead(false);
-                targetEntity.setDead();
-                count++;
+                if (!worldIn.isRemote) {
+                    targetEntity.setDead();
+                }
 
             } else if (target.typeOfHit == RayTraceResult.Type.BLOCK) {
 
                 BlockPos spawnloc = target.getBlockPos().offset(target.sideHit);
 
-                Entity newEntity = storedEntity.newInstance(worldIn);
-                newEntity.posX = spawnloc.getX();
-                newEntity.posY = spawnloc.getY();
-                newEntity.posZ = spawnloc.getZ();
-                worldIn.spawnEntity(newEntity);
                 count--;
+                Entity newEntity = storedEntity.newInstance(worldIn);
+                newEntity.setLocationAndAngles(spawnloc.getX(), spawnloc.getY(), spawnloc.getZ(), 0,0);
+                if (!worldIn.isRemote) {
+                    worldIn.spawnEntity(newEntity);
+
+                }
 
             } else {
                 return ActionResult.newResult(EnumActionResult.FAIL, itemStack);
@@ -130,5 +137,52 @@ public class ItemBasicFucket extends FucketBase {
 
         }
 
+    }
+
+    @Nullable
+    protected RayTraceResult rayTraceFucket(World world, EntityPlayer player) {
+
+        Entity entity = null;
+        RayTraceResult result = null;
+        double reachD = player.getEntityAttribute(EntityPlayer.REACH_DISTANCE).getAttributeValue();
+
+        Vec3d looking = player.getLook(1.0F);
+        Vec3d start = player.getPositionEyes(1.0F);
+        Vec3d end = start.addVector(looking.x * reachD, looking.y * reachD, looking.z * reachD);
+        Vec3d hit = null;
+
+        List<Entity> entityList = world.getEntitiesWithinAABBExcludingEntity(player, player
+                .getEntityBoundingBox().expand(looking.x * reachD, looking.y * reachD, looking.z * reachD));
+
+        for (Entity entityC : entityList) {
+
+            AxisAlignedBB axisAlignedBB = entityC.getEntityBoundingBox().grow((double) entityC.getCollisionBorderSize());
+            RayTraceResult rayTraceResult = axisAlignedBB.calculateIntercept(start, end);
+
+            if (axisAlignedBB.contains(start)) {
+
+                entity = entityC;
+                hit = rayTraceResult == null ? start : rayTraceResult.hitVec;
+
+            } else if (rayTraceResult != null) {
+
+                entity = entityC;
+                hit = rayTraceResult.hitVec;
+
+            }
+
+        }
+
+        if (entity != null) {
+
+            result = new RayTraceResult(entity, hit);
+
+        } else {
+
+            result = rayTrace(world, player, false);
+
+        }
+
+        return result;
     }
 }
