@@ -1,20 +1,47 @@
 
-build/
-classes/
-out/
-run/
+# windows
+Thumbs.db
 
+# osx
+.DS_store
+.AppleDouble
+.LSOverride
+
+# Un*x
+*~
+*.swp*
+
+# bin
 *.exe
 *.jar
 *.out
+*.dll
+*.elf
+*.so
+*.a
+*.o
 
-.gradle/
-.idea/
+# eclipse
+/.settings
+/.metadata
+/.classpath
+/.project
+/eclipse
+/bin
 
-tmp*/
-
-*.idea
+# intellij
+/.idea
+/out
+*.ipr
+*.iws
 *.iml
 
-!gradle-wrapper.*
+# gradle
+/.gradle
+/gradle
+!/gradle/wrapper/gradle-wrapper.jar
 
+# env
+/run
+/build
+/venv
