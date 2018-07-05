@@ -68,7 +68,7 @@ public class Fucket {
     @GameRegistry.ObjectHolder(MOD_ID)
     public static class Items {
 
-          public static final ItemBasicFucket basicFucket = new ItemBasicFucket();
+          public static final ItemBasicFucket basic_fucket = new ItemBasicFucket();
 
     }
 
@@ -83,7 +83,7 @@ public class Fucket {
         @SubscribeEvent
         public static void addItems(RegistryEvent.Register<Item> event) {
 
-            event.getRegistry().register(Items.basicFucket);
+            event.getRegistry().register(Items.basic_fucket);
 
         }
 
