@@ -1,6 +1,7 @@
 package narwhalfire.fucket;
 
 import narwhalfire.fucket.item.ItemBasicFucket;
+import narwhalfire.fucket.item.ItemOceanFucket;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
@@ -69,6 +70,7 @@ public class Fucket {
     public static class Items {
 
           public static final ItemBasicFucket basic_fucket = new ItemBasicFucket();
+          public static final ItemOceanFucket ocean_fucket = new ItemOceanFucket();
 
     }
 
@@ -84,6 +86,7 @@ public class Fucket {
         public static void addItems(RegistryEvent.Register<Item> event) {
 
             event.getRegistry().register(Items.basic_fucket);
+            event.getRegistry().register(Items.ocean_fucket);
 
         }
 
