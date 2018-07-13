@@ -2,7 +2,6 @@ package narwhalfire.fucket.item;
 
 import narwhalfire.fucket.Fucket;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ActionResult;
@@ -12,8 +11,11 @@ import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.world.World;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 
 import javax.annotation.Nonnull;
+import java.util.*;
 
 /**
  * The Ocean Fucket: A fucket that drains/fills up the entire body of water/area the clicked block is connected to.
@@ -21,7 +23,7 @@ import javax.annotation.Nonnull;
 public class ItemOceanFucket extends FucketBase {
 
     private int capacity = 1024000;
-    private int count = 0;
+    private final int MAX_RADIUS = 128;
 
 
     public ItemOceanFucket() {
@@ -31,6 +33,8 @@ public class ItemOceanFucket extends FucketBase {
     @Override
     @Nonnull
     public ActionResult<ItemStack> onItemRightClick(@Nonnull World worldIn, @Nonnull EntityPlayer playerIn, @Nonnull EnumHand handIn) {
+
+        Fluid fluid = FluidRegistry.WATER;
 
         ItemStack itemStack = playerIn.getHeldItem(handIn);
 
@@ -45,46 +49,42 @@ public class ItemOceanFucket extends FucketBase {
         }
 
         if (itemStackTagCompund.hasKey("FucketContained", 10)) {
+            // there is stuff in the fucket
 
-            if (worldIn.getBlockState(target.getBlockPos()).getBlock().equals(Blocks.WATER)) {
+            if (isFluidAtPosition(worldIn, target.getBlockPos(), fluid)) {
+                // we already have a fluid
 
                 return ActionResult.newResult(EnumActionResult.PASS, itemStack);
 
             } else {
+                // now we place the fluid
 
                 NBTTagCompound compound = itemStackTagCompund.getCompoundTag("FucketContained");
-                count = compound.getInteger("Count");
+                int count = compound.getInteger("Count");
 
-                boolean dirty = placeWater(worldIn, target.getBlockPos(), EnumOceanFucketModes.BELOW.facings);
+                count = placeFluid(worldIn, target.getBlockPos(), fluid, count, EnumOceanFucketModes.BELOW.facings);
 
-                if (dirty) {
-
-                    if (count == 0) {
-                        itemStackTagCompund.removeTag("FucketContained");
-                    } else {
-                        compound.setInteger("Count", count);
-                        itemStackTagCompund.setTag("FucketContained", compound);
-                    }
-
-                    itemStack.setTagCompound(itemStackTagCompund);
-                    return ActionResult.newResult(EnumActionResult.SUCCESS, itemStack);
-
+                if (count == 0) {
+                    itemStackTagCompund.removeTag("FucketContained");
                 } else {
-
-                    return ActionResult.newResult(EnumActionResult.FAIL, itemStack);
-
+                    compound.setInteger("Count", count);
+                    itemStackTagCompund.setTag("FucketContained", compound);
                 }
+
+                itemStack.setTagCompound(itemStackTagCompund);
+
+                return ActionResult.newResult(EnumActionResult.SUCCESS, itemStack);
 
             }
 
         } else {
+            // the fucket is empty
 
-            if (worldIn.getBlockState(target.getBlockPos()).getBlock().equals(Blocks.WATER)) {
+            if (isFluidAtPosition(worldIn, target.getBlockPos(), fluid)) {
 
-                count = 0;
-                boolean dirty = collectWater(worldIn, target.getBlockPos(), EnumOceanFucketModes.BELOW.facings);
+                int count = collectFluid(worldIn, target.getBlockPos(), fluid, EnumOceanFucketModes.BELOW.facings);
 
-                if (dirty) {
+                if (count != 0) {
 
                     NBTTagCompound compound = new NBTTagCompound();
                     compound.setInteger("Count", count);
@@ -109,83 +109,109 @@ public class ItemOceanFucket extends FucketBase {
 
     }
 
-    private boolean collectWater(@Nonnull World world, @Nonnull BlockPos pos, EnumFacing... facings) {
+    private int collectFluid(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull Fluid fluid, EnumFacing... facings) {
 
-        if (!world.getBlockState(pos).getBlock().equals(Blocks.WATER)) {
+        int count = 0;
 
-            return false;
+        BlockPos seed = pos;
 
-        } else {
+        Queue<BlockPos> queue = new ArrayDeque<>();
+        queue.add(seed);
 
-            boolean bool = false;
-            boolean tmp;
+        while (!queue.isEmpty()) {
+
+            seed = queue.remove();
+
+            if (pos.distanceSq(seed) > this.MAX_RADIUS) {
+                continue;
+            }
 
             for (int i = 0; i < facings.length; i++) {
 
-                EnumFacing[] facings_ = new EnumFacing[facings.length-1];
+                BlockPos seedOffset = seed.offset(facings[i]);
 
-                int o = 0;
-                for (int j = 0; j < facings_.length; j++) {
+                if (isFluidAtPosition(world, seedOffset, fluid)) {
 
-                    o += (facings[j+o] == facings[i].getOpposite()) ? 1 : 0;
-
-                    facings_[j] = facings[j+o];
+                    world.setBlockToAir(seedOffset);
+                    count++;
+                    queue.add(seedOffset);
 
                 }
 
-                tmp = collectWater(world, pos.offset(facings[i]), facings_);
-                bool = bool || tmp;
+                if (count >= this.capacity) {
+                    break;
+                }
 
             }
 
-            world.setBlockToAir(pos);
-            count++;
-
-            return bool;
+            if (count == this.capacity) {
+                break;
+            } else if (count > this.capacity) {
+                // uh oh
+                break;
+            }
 
         }
 
+        return count;
+
     }
 
-    private boolean placeWater(@Nonnull World world, @Nonnull BlockPos pos, EnumFacing... facings) {
+    private int placeFluid(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull Fluid fluid, int count, EnumFacing... facings) {
 
-        if (!world.mayPlace(world.getBlockState(pos).getBlock(), pos, true, EnumFacing.UP, null)) {
+        BlockPos seed = pos;
 
-            return false;
+        Queue<BlockPos> queue = new ArrayDeque<>();
+        queue.add(seed);
 
-        } else {
+        while (!queue.isEmpty()) {
 
-            boolean bool = false;
-            boolean tmp;
+            seed = queue.remove();
+
+            if (pos.distanceSq(seed) > this.MAX_RADIUS) {
+                continue;
+            }
 
             for (int i = 0; i < facings.length; i++) {
 
-                EnumFacing[] facings_ = new EnumFacing[facings.length-1];
+                BlockPos seedOffset = seed.offset(facings[i]);
 
-                int o = 0;
-                for (int j = 0; j < facings_.length; j++) {
+                if (world.mayPlace(fluid.getBlock(), seedOffset, false, EnumFacing.UP, null)) {
 
-                    o += (facings[j+o] == facings[i].getOpposite()) ? 1 : 0;
-
-                    facings_[j] = facings[j+o];
+                    world.setBlockState(seedOffset, fluid.getBlock().getDefaultState());
+                    count--;
+                    queue.add(seedOffset);
 
                 }
 
-                tmp = placeWater(world, pos.offset(facings[i]), facings_);
-                bool = bool || tmp;
+                if (count == 0) {
+                    break;
+                }
 
             }
 
-            world.setBlockState(pos, Blocks.WATER.getDefaultState());
-            count--;
-
-            return bool;
+            if (count == 0) {
+                break;
+            } else if (count < 0) {
+                // uh oh
+                break;
+            }
 
         }
 
+        return count;
+
     }
 
-    public static enum EnumOceanFucketModes {
+    private static boolean isFluidAtPosition(@Nonnull World world, BlockPos pos, Fluid fluid) {
+        if (pos == null || fluid == null) {
+            return false;
+        } else {
+            return world.getBlockState(pos).getBlock().equals(fluid.getBlock());
+        }
+    }
+
+    public enum EnumOceanFucketModes {
 
         BODY(EnumFacing.VALUES),
         LAYER(EnumFacing.HORIZONTALS),
