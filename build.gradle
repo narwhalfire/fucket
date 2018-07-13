@@ -54,3 +54,8 @@ processResources {
 runClient {
     args '--username', 'NarwhalFire'
 }
+
+wrapper {
+    distributionType = Wrapper.DistributionType.ALL
+    gradleVersion = "4.8"
+}

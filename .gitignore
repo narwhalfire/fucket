@@ -38,10 +38,11 @@ Thumbs.db
 
 # gradle
 /.gradle
-/gradle
-!/gradle/wrapper/gradle-wrapper.jar
 
 # env
 /run
 /build
 /venv
+
+# exclusions
+!/gradle/wrapper/gradle-wrapper.jar
